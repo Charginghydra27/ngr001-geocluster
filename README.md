@@ -6,9 +6,9 @@ This project aims to ingest geospatial “events”, store them in **PostGIS**, 
 
 ## Contents
 - [Stack](#stack) • [Architecture](#architecture) • [Prerequisites](#prerequisites)  
-- [Quickstart](#quickstart-25-min) • [Seed data](#seed-synthetic-data) • [Run UI](#run-the-frontend-ui)  
-- [Verify with curl](#verify-with-curl) • [Structure](#project-structure) • [API](#key-api-endpoints)  
-- [Troubleshooting](#troubleshooting) • [Dev workflow](#development-workflow) • [License](#license)
+- [Quickstart](#quickstart-25-min) • [Structure](#Structure) • [Dev workflow](#dev-workflow) 
+
+
 
 
 ---
