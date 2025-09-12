@@ -1,0 +1,25 @@
+version: "3.9"
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: ngr001_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: eventsdb
+    ports: ["5432:5432"]
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: ./backend
+    container_name: ngr001_api
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/eventsdb
+    depends_on: [db]
+    ports: ["8000:8000"]
+    volumes:
+      - ./backend/app:/app/app
+volumes:
+  pgdata:
