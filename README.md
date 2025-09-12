@@ -10,6 +10,7 @@ This project aims to ingest geospatial “events”, store them in **PostGIS**, 
 - [Verify with curl](#verify-with-curl) • [Structure](#project-structure) • [API](#key-api-endpoints)  
 - [Troubleshooting](#troubleshooting) • [Dev workflow](#development-workflow) • [License](#license)
 
+
 ---
 
 ## Stack
@@ -77,6 +78,44 @@ npm ci
 npm run dev
 # open http://localhost:5173
 ```
+
+
+
+## Structure ##
+```bash
+├─ backend/
+│  ├─ app/
+│  │  ├─ main.py          # FastAPI entry
+│  │  ├─ models.py        # SQLAlchemy models (PostGIS columns)
+│  │  ├─ schemas.py       # Pydantic I/O models
+│  │  ├─ crud.py          # DB access helpers
+│  │  ├─ clustering.py    # server-side H3 aggregation
+│  │  └─ seed.py          # synthetic event generator
+│  └─ requirements.txt
+├─ db/
+│  └─ init.sql            # enables PostGIS, base schema
+├─ frontend/
+│  ├─ src/
+│  │  ├─ api.ts           # small fetch helpers
+│  │  ├─ map/MapView.tsx  # MapLibre + deck.gl overlay
+│  │  ├─ App.tsx
+│  │  └─ ...
+│  └─ vite.config.ts
+├─ scripts/
+│  ├─ seed.ps1            # Windows seeder
+│  └─ seed.sh             # macOS/Linux seeder (optional)
+├─ docker-compose.yml     # PostGIS + FastAPI
+└─ README.md
+```
+
+
+## dev-workflow ##
+1) **Branching**
+2) **Run services locally**
+3) **Commit & PR**
+4) **Keep docs up-to-date**
+
+
 
 
 
