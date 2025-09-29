@@ -1,128 +1,194 @@
 ﻿import React, { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
-// Deck.gl adapter that syncs Deck with (MapLibre) camera & WebGL context
 import { MapboxOverlay } from "@deck.gl/mapbox";
-// H3 visualization layer (each item = H3 cell with properties we map to height/color)
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
 import { fetchH3 } from "../api";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-// Omaha-ish center. initial view.
 const CENTER: [number, number] = [-95.9345, 41.2565];
 
-// describe the H3 aggregation shape we expect from the API
-type H3Agg = { h3: string; count: number };
+const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_KEY as string | undefined;
+const MAPTILER_STYLE =
+  MAPTILER_KEY &&
+  (`https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}` as const);
+const FALLBACK_STYLE = "https://demotiles.maplibre.org/style.json";
+
+// helpers
+const clamp = (n: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, n));
+
+type BBox = { minx: number; miny: number; maxx: number; maxy: number; crosses: boolean };
+
+function normalizedViewportBounds(map: maplibregl.Map): BBox {
+  const b = map.getBounds();
+
+  // Clamp to valid WGS84 ranges (use ±85 to avoid singularities near the poles)
+  let minx = clamp(b.getWest(), -180, 180);
+  let maxx = clamp(b.getEast(), -180, 180);
+  const miny = clamp(b.getSouth(), -85, 85);
+  const maxy = clamp(b.getNorth(), -85, 85);
+
+  // If world wraps, east can be < west (crosses dateline)
+  const crosses = maxx < minx;
+
+  return { minx, miny, maxx, maxy, crosses };
+}
 
 export default function MapView() {
-
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
-
-  // H3 resolution state (5–9 are good interactive defaults)
   const [res, setRes] = useState(7);
 
   useEffect(() => {
-    // 1) Spin up basemap
+    if (!MAPTILER_KEY) {
+      console.warn("[Map] Missing VITE_MAPTILER_KEY. Using fallback basemap.");
+    }
+
     const map = new maplibregl.Map({
       container: containerRef.current!,
-      style: "https://demotiles.maplibre.org/style.json",
+      style: MAPTILER_STYLE || FALLBACK_STYLE,
       center: CENTER,
       zoom: 9,
+      attributionControl: false,
+      renderWorldCopies: false, // ⬅️ stop duplicates outside [-180, 180]
+      transformRequest: (url) => {
+        if (url.includes("api.maptiler.com") && !url.includes("key=") && MAPTILER_KEY) {
+          const sep = url.includes("?") ? "&" : "?";
+          return { url: `${url}${sep}key=${MAPTILER_KEY}` };
+        }
+        return { url };
+      },
     });
+
+    map.on("error", (e) => console.error("[MapLibre error]", e?.error || e));
+
+    map.addControl(
+      new maplibregl.AttributionControl({
+        compact: true,
+        customAttribution: "© MapTiler © OpenStreetMap contributors",
+      })
+    );
+
     mapRef.current = map;
 
-    // 2) Create deck.gl overlay.
-    //    interleaved:true draws deck layers inside the same render pass as MapLibre (better perf)
+    // deck.gl overlay (works for v8/v9)
     const overlay = new MapboxOverlay({ interleaved: true, layers: [] });
-    // Attach as a MapLibre control (preferred pattern in current deck.gl)
-    map.addControl(overlay as any);
+    if (typeof (overlay as any).setMap === "function") {
+      (overlay as any).setMap(map); // v8
+    } else {
+      map.addControl(overlay as unknown as maplibregl.IControl); // v9+
+    }
     overlayRef.current = overlay;
 
-    // Helper that fetches hex counts for current viewport and renders them
-    const update = async () => {
-      const b = map.getBounds(); // map’s current geographic viewport
-      const data: H3Agg[] = await fetchH3({
-        minx: b.getWest(),
-        miny: b.getSouth(),
-        maxx: b.getEast(),
-        maxy: b.getNorth(),
-        res,                    // <- H3 resolution slider value
-      });
+    const paint = async () => {
+      const { minx, miny, maxx, maxy, crosses } = normalizedViewportBounds(map);
+
+      let data: any[] = [];
+      try {
+        if (crosses) {
+          // Split across the anti-meridian and merge results
+          const [left, right] = await Promise.all([
+            fetchH3({ minx, miny, maxx: 180, maxy, res }),
+            fetchH3({ minx: -180, miny, maxx, maxy, res }),
+          ]);
+          data = [...left, ...right];
+        } else {
+          data = await fetchH3({ minx, miny, maxx, maxy, res });
+        }
+      } catch (err) {
+        console.error("[fetchH3 failed]", err);
+        data = [];
+      }
 
       overlay.setProps({
         layers: [
           new H3HexagonLayer({
             id: "h3-hexes",
             data,
-            getHexagon: (d: H3Agg) => d.h3,
-            getElevation: (d: H3Agg) => d.count,
-            extruded: true,      // 3D columns
-            pickable: true,      // enables hover/click interactivity later
-            // getFillColor: (d: H3Agg) => [20, 120, 220, 160], // example solid color (RGBA)
+            getHexagon: (d: any) => d.h3,
+            getElevation: (d: any) => d.count,
+            extruded: true,
+            pickable: true,
           }),
         ],
       });
     };
 
-    // 3) Load once and then on every camera settle
-    map.on("load", update);
-    map.on("moveend", update);
+    map.on("load", paint);
+    map.on("moveend", paint);
 
-    // Cleanup: remove overlay control first, then the map
     return () => {
-      if (overlayRef.current) map.removeControl(overlayRef.current as any);
+      try {
+        if (typeof (overlay as any).setMap === "function") {
+          (overlay as any).setMap(null);
+        } else {
+          map.removeControl(overlay as unknown as maplibregl.IControl);
+        }
+      } catch {}
+      overlay.finalize?.();
       map.remove();
     };
-  }, []); // run once
+  }, []);
 
-  /**
-   * Re-run the aggregation when H3 resolution changes.
-   * don’t need to rewire listeners—just fetch visible data at the new res and
-   * replace the overlay’s layers.
-   */
+  // re-query on resolution change
   useEffect(() => {
     const map = mapRef.current;
     const overlay = overlayRef.current;
     if (!map || !overlay) return;
 
-    const b = map.getBounds();
-    fetchH3({
-      minx: b.getWest(),
-      miny: b.getSouth(),
-      maxx: b.getEast(),
-      maxy: b.getNorth(),
-      res,
-    }).then((data: H3Agg[]) =>
+    (async () => {
+      const { minx, miny, maxx, maxy, crosses } = normalizedViewportBounds(map);
+      let data: any[] = [];
+      try {
+        if (crosses) {
+          const [l, r] = await Promise.all([
+            fetchH3({ minx, miny, maxx: 180, maxy, res }),
+            fetchH3({ minx: -180, miny, maxx, maxy, res }),
+          ]);
+          data = [...l, ...r];
+        } else {
+          data = await fetchH3({ minx, miny, maxx, maxy, res });
+        }
+      } catch (e) {
+        console.error("[fetchH3 failed]", e);
+      }
+
       overlay.setProps({
         layers: [
           new H3HexagonLayer({
             id: "h3-hexes",
             data,
-            getHexagon: (d: H3Agg) => d.h3,
-            getElevation: (d: H3Agg) => d.count,
+            getHexagon: (d: any) => d.h3,
+            getElevation: (d: any) => d.count,
             extruded: true,
             pickable: true,
           }),
         ],
-      })
-    );
+      });
+    })();
   }, [res]);
 
   return (
     <div style={{ position: "relative", height: "100%" }}>
-      {/* Map container (MapLibre owns the canvas inside this div) */}
       <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
-
-      {/* Minimal HUD for resolution control */}
-      <div style={{ position: "absolute", top: 10, left: 10, background: "#fff", padding: 8, borderRadius: 8 }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 10,
+          left: 10,
+          background: "#fff",
+          padding: 8,
+          borderRadius: 8,
+        }}
+      >
         <label>H3 Res&nbsp;</label>
         <input
           type="range"
           min={5}
           max={9}
           value={res}
-          onChange={(e) => setRes(parseInt(e.target.value))}
+          onChange={(e) => setRes(parseInt(e.target.value, 10))}
         />
         <span style={{ marginLeft: 8 }}>{res}</span>
       </div>
