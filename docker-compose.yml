@@ -1,4 +1,5 @@
 version: "3.9"
+
 services:
   db:
     image: postgis/postgis:16-3.4
@@ -11,15 +12,35 @@ services:
     volumes:
       - ./db/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
       - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
 
   api:
     build: ./backend
     container_name: ngr001_api
     environment:
       DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/eventsdb
+
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on: [db]
     ports: ["8000:8000"]
     volumes:
       - ./backend/app:/app/app
+    restart: unless-stopped
+
+  frontend:
+    image: node:22-alpine
+    container_name: ngr001_frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app                  # source
+      - /app/node_modules                # keep node_modules inside container
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"
+    ports: ["5173:5173"]
+    environment:
+      # either pass from host env or rely on frontend/.env.local
+      VITE_MAPTILER_KEY: ${VITE_MAPTILER_KEY}
+    depends_on: [api]
+    restart: unless-stopped
+
 volumes:
   pgdata:
