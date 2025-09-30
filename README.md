@@ -50,7 +50,9 @@ Ports: **API** `http://localhost:8000` • **DB** `localhost:5432` • **UI** `h
   ```powershell
   Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
-## Quickstart (2–5 min)
+
+---
+## Quickstart 
 
 1) **Clone**
 ```bash
@@ -58,29 +60,70 @@ git clone https://github.com/Charginghydra27/ngr001-geocluster.git
 cd ngr001-geocluster
 ```
 
-2) **Start DB + API**
+2) **Start DB + API + UI (Docker)**
 ```bash
 docker compose up -d --build
-curl http://localhost:8000/health   # -> {"ok":true}
-# API docs: http://localhost:8000/docs
+# API health: http://localhost:8000/health   -> {"ok": true}
+# API docs:   http://localhost:8000/docs
+# Frontend:   http://localhost:5173
 ```
 
-3) **Seed data**
+3) **Seed data (Omaha Clustered Events)**
+
+**Windows Powershell / CMD**
 ```bash
-.\scripts\seed.ps1
+docker compose exec db psql -U postgres -d eventsdb -c "INSERT INTO events (occurred_at, lat, lon, type, severity) SELECT NOW() - (random() * interval '30 days'), 41.0 + random()*1.5, -96.6 + random()*2.0, 'demo', (floor(random()*5))::int FROM generate_series(1, 5000);"
+```
+**macOS / Linux**
+```bash
+docker compose exec db psql -U postgres -d eventsdb -c \
+"INSERT INTO events (occurred_at, lat, lon, type, severity)
+ SELECT NOW() - (random() * interval '30 days'),
+        41.0 + random()*1.5,
+       -96.6 + random()*2.0,
+        'demo',
+        (floor(random()*5))::int
+ FROM generate_series(1, 5000);"
 ```
 
-4) **Run the UI**
+**Sanity Check (Check for cluster events)**
+```bash
+docker compose exec db psql -U postgres -d eventsdb -c "SELECT count(*) FROM events;"
+# expect ~5000
+```
+
+4) **Open the UI**
+- Visit **http://localhost:5173**
+- Pan/Zoom or move the H3 Res Slider to refresh the hex bins
+
+> You don’t need to run `npm run dev` locally when using Docker. The frontend container serves the app.
+
+> Don’t run the Docker frontend and local npm run dev at the same time.
+
+
+### Alternative: Local UI dev (optional)
+Run only if you want hot-reload outside Docker (backend can stay in Docker).
+
 ```bash
 cd frontend
-# if present:
-[ -f .env.example ] && cp .env.example .env
 npm ci
 npm run dev
-# open http://localhost:5173
+# open the printed localhost URL (usually http://localhost:5173)
+```
+### Rebuilding Docker After Changes:
+**Quick Rebuild (Keeps Data)**
+```bash
+docker compose up -d --build
 ```
 
+### Clean Restart (recreate containers & Volumes):
+**Quick Rebuild (Keeps Data)**
+```bash
+docker compose down -v
+docker compose up --build
+```
 
+---
 
 ## Structure ##
 ```bash
