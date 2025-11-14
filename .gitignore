@@ -18,14 +18,10 @@ frontend/dist/
 frontend/.vite/
 
 # --- Project data / downloads ---
-# Ignore ALL contents of the root data folder (including subfolders),
-# but keep the folder itself via .gitkeep.
- /data/*
- /data/**        # recursive (subfolders/files)
- !/data/.gitkeep # keep placeholder tracked
-
-# If you do want to make sure stray zips never get tracked anywhere:
-# *.zip
+/data/*          # ignore ALL contents of /data
+/data/**         # recursive (subfolders)
+/data/*.zip      # (optional) stray zips
+!/data/.gitkeep  # keep placeholder tracked so folder exists
 
 # --- Docker local state ---
 volumes/
