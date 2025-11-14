@@ -1,12 +1,35 @@
-frontend/node_modules
-*.log
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# --- Python ---
 __pycache__/
 *.pyc
 .venv/
+.python-version
 .env
 .env.*
+
+# --- Node / frontend ---
+**/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# --- Project data / downloads ---
+# Ignore ALL contents of the root data folder (including subfolders),
+# but keep the folder itself via .gitkeep.
+ /data/*
+ /data/**        # recursive (subfolders/files)
+ !/data/.gitkeep # keep placeholder tracked
+
+# If you do want to make sure stray zips never get tracked anywhere:
+# *.zip
+
+# --- Docker local state ---
 volumes/
 pgdata/
-data/
-.DS_Store
-Thumbs.db
+
+# --- Logs ---
+*.log
