@@ -2,9 +2,10 @@
 import maplibregl from "maplibre-gl";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
-import { fetchH3 } from "../api";
+import { fetchEventsInHex, fetchH3 } from "../api";
 import { MAPTILER_KEY } from "../config";
 import "maplibre-gl/dist/maplibre-gl.css";
+import HexEventTable from "./TableView";
 
 type H3Agg = { h3: string; count: number };
 const CENTER: [number, number] = [-95.9345, 41.2565];
@@ -27,6 +28,10 @@ export default function MapView() {
   const [selected, setSelected] = useState<Record<string, boolean>>(
     () => Object.fromEntries(DATASETS.map(d => [d.id, true]))
   );
+
+  //Clicked tile and events
+  const [activeHex, setActiveHex] = useState<string | null>(null);
+  const [hexEvents, setHexEvents] = useState<any[] | null>(null);
 
   // Derived selection + refs so handlers always see fresh values
   const selectedIds = useMemo(
@@ -76,6 +81,22 @@ export default function MapView() {
           pickable: true,
           getFillColor: (d: H3Agg) => [20, 120, 220, 180],
           wrapLongitude: false,
+
+          onClick: (info, event) => {
+            if (!info.object) return;
+
+            const hex = info.object.h3
+
+            setActiveHex(hex);
+            setHexEvents(null);
+            
+            void (async () => {
+              const events = await fetchEventsInHex(hex, selectedIdsRef.current);
+              console.log("Fetched Events:", events)
+              setHexEvents(events);
+            })();
+
+          }
         }),
       ],
     });
@@ -155,6 +176,9 @@ export default function MapView() {
           ))}
         </div>
       </div>
+
+      <HexEventTable activeHex={activeHex} hexEvents={hexEvents} onClose={() => setActiveHex(null)} />
     </div>
+
   );
 }
