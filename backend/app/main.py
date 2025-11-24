@@ -6,9 +6,6 @@ from collections import Counter
 from fastapi import FastAPI, Depends, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from .db import get_db
-from . import crud, schemas, clustering
-
 
 app = FastAPI(title="NGR001 Geospatial API")
 
@@ -16,10 +13,14 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=86400,
 )
 
+from .db import get_db
+from . import crud, schemas, clustering
 
 # ---------------- helpers ----------------
 
@@ -71,6 +72,10 @@ def bulk(items: List[schemas.EventIn], db=Depends(get_db)):
     n = crud.bulk_insert_events(db, items)
     return {"inserted": n}
 
+@app.patch("/events/bulk_update")
+def update_event(items: List[schemas.EventUpdate], db=Depends(get_db)):
+    updated = crud.bulk_update_events(db, items)
+    return {"updated": updated}
 
 @app.get("/events")
 def events(
@@ -95,7 +100,6 @@ def events(
 
     out = out[:limit]
     return [schemas.EventOut.model_validate(r, from_attributes=True) for r in out]
-
 
 @app.get("/aggregations/h3")
 def h3_agg(

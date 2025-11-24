@@ -1,14 +1,16 @@
 from __future__ import annotations
 from typing import Iterable, Optional, Tuple, List
 from datetime import datetime
+import logging
 
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from . import models, schemas
 
 BBox = Tuple[float, float, float, float]
-
+logger = logging.getLogger("uvicorn.error")
 
 def bulk_insert_events(db: Session, items: List[schemas.EventIn]) -> int:
     objs = [models.Event(**i.model_dump()) for i in items]
@@ -16,6 +18,26 @@ def bulk_insert_events(db: Session, items: List[schemas.EventIn]) -> int:
     db.commit()
     return len(objs)
 
+def bulk_update_events(db:Session, items):
+    count = 0
+    for event in items:
+        try:
+            db.execute(text("""
+                        UPDATE events
+                        SET type = COALESCE(:type, type),
+                            occurred_at = COALESCE(:date, occurred_at)
+                            severity = COALESCE(:severity, severity)
+                        WHERE id = :id
+                        """), {"id":event.id, "type":event.type, "severity":event.severity, "date":event.occurred_at})
+            count += 1
+        except SQLAlchemyError as e:
+            logger.error("SQL UPDATE ERROR for id %s: %s", event.id, str(e))
+            logger.exception(e)
+            db.rollback()
+            raise
+    
+    db.commit()
+    return count
 
 def _as_array_param(values: Iterable[str]) -> list[str]:
     return list(dict.fromkeys(v for v in values if v))

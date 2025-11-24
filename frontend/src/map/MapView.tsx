@@ -2,7 +2,7 @@
 import maplibregl from "maplibre-gl";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
-import { fetchEventsInHex, fetchH3 } from "../api";
+import { fetchEventsInHex, fetchH3, updateEventsBulk } from "../api";
 import { MAPTILER_KEY } from "../config";
 import "maplibre-gl/dist/maplibre-gl.css";
 import HexEventTable from "./TableView";
@@ -43,6 +43,21 @@ export default function MapView() {
 
   const resRef = useRef<number>(res);
   useEffect(() => { resRef.current = res; }, [res]);
+
+  //update events function
+  const updateEvents = async (updatedRows: any[]) => {
+    try {
+      await updateEventsBulk(updatedRows);
+
+      if (activeHex) {
+        const refresh = await fetchEventsInHex(activeHex);
+        setHexEvents(refresh);
+      }
+    } catch (e) {
+      console.error("Failed to update events", e)
+      alert("Error updating events, see console for details.")
+    }
+  }
 
   // Single fetch+render function that ONLY reads from refs (fresh values)
   const requestAndRender = async () => {
@@ -91,7 +106,7 @@ export default function MapView() {
             setHexEvents(null);
             
             void (async () => {
-              const events = await fetchEventsInHex(hex, selectedIdsRef.current);
+              const events = await fetchEventsInHex(hex);
               console.log("Fetched Events:", events)
               setHexEvents(events);
             })();
@@ -177,7 +192,7 @@ export default function MapView() {
         </div>
       </div>
 
-      <HexEventTable activeHex={activeHex} hexEvents={hexEvents} onClose={() => setActiveHex(null)} />
+      <HexEventTable activeHex={activeHex} hexEvents={hexEvents} onClose={() => setActiveHex(null)} onUpdate={updateEvents} />
     </div>
 
   );

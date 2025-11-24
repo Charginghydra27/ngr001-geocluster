@@ -2,7 +2,7 @@
 import {hexToBox} from "./utils/h3"
 export const API = API_BASE;
 
-export async function fetchEventsInHex(h3: string, sources: string[]) {
+export async function fetchEventsInHex(h3: string) {
   //Get the parameters for the API call
   const {minx, miny, maxx, maxy} = hexToBox(h3);
   const qs = new URLSearchParams({
@@ -12,9 +12,6 @@ export async function fetchEventsInHex(h3: string, sources: string[]) {
     maxy: String(maxy),
     limit: "10000"
   });
-  for (const src of sources) {
-    qs.append("include", src);
-  }
 
   //Get the url from the parameters
   const url = `${API}/events?${qs.toString()}`;
@@ -27,6 +24,21 @@ export async function fetchEventsInHex(h3: string, sources: string[]) {
   } catch (e) {
     console.error("fetchEventsInHex failed:", url, e);
     return [];
+  }
+}
+
+export async function updateEventsBulk(events: any[]){
+  try {
+    const r = await fetch(`${API}/events/bulk_update`, {
+      method: "PATCH",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(events)
+    })
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } catch (e) {
+    console.error("updateEventsBulk failed:", e);
+    throw e;
   }
 }
 
