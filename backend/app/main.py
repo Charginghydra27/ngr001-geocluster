@@ -148,6 +148,8 @@ def dbscan(
 
     bbox = None
     if None not in (minx, miny, maxx, maxy):
+        # For DBSCAN we can keep a single bbox; if you see dateline errors here,
+        # apply the same _split_bbox pattern and merge results.
         bbox = (minx, miny, maxx, maxy)
 
     rows = crud.query_events(db, bbox=bbox, start=start, end=end, limit=limit, sources=selected)
