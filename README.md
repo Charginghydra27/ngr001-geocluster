@@ -86,11 +86,47 @@ docker compose exec db psql -U postgres -d eventsdb -c \
  FROM generate_series(1, 5000);"
 ```
 
+3.5.) **Insert External Weather & Traffic Data**
+
+A.) Manual Method:
+  1. Download the CSV's from Kaggle and place them into data/
+    https://www.kaggle.com/datasets/sobhanmoosavi/us-weather-events
+    https://www.kaggle.com/datasets/sobhanmoosavi/us-accidents
+    https://www.kaggle.com/datasets/noaa/severe-weather-data-inventory/data
+  2. Load them into the database (with an optional per-source limit while testing):
+  ```bash
+  #Windows Powershell
+  .\scripts\load_external_data.ps1 (full load)
+  .\scripts\load_external_data.ps1 10000 (limit 10k per source)
+  ```
+
+B.) Scripted Method (Auto-dowlnoad via Kaggle CLI):
+
+This method downloads the datasets for you and extracts the actual CSV's from the zip files
+  1. Create an API token in Kaggle: Account -> Create new API token
+  2. Save the downloaded Kaggle.json to (C:Users\<YourUser>\.Kaggle\Kaggle.json)
+  3. run the data download script 
+  ```bash
+  .\scripts\download_data.ps1
+  ```
+  4. You should see the CSV files appear in the data/ folder 
+  5. Load them into the database (with an optional per-source limit while testing):
+  ```bash
+  #Windows Powershell
+  .\scripts\load_external_data.ps1 (full load)
+  .\scripts\load_external_data.ps1 10000 (limit 10k per source)
+  ```
+
+
 **Sanity Check (Check for cluster events)**
 ```bash
 docker compose exec db psql -U postgres -d eventsdb -c "SELECT count(*) FROM events;"
 # expect ~5000
 ```
+
+
+
+
 
 4) **Open the UI**
 - Visit **http://localhost:5173**

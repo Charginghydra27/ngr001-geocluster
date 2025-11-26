@@ -1,11 +1,31 @@
-frontend/node_modules
-*.log
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# --- Python ---
 __pycache__/
 *.pyc
 .venv/
+.python-version
 .env
 .env.*
+
+# --- Node / frontend ---
+**/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# --- Project data / downloads ---
+/data/*          # ignore ALL contents of /data
+/data/**         # recursive (subfolders)
+/data/*.zip      # (optional) stray zips
+!/data/.gitkeep  # keep placeholder tracked so folder exists
+
+# --- Docker local state ---
 volumes/
 pgdata/
-.DS_Store
-Thumbs.db
+
+# --- Logs ---
+*.log

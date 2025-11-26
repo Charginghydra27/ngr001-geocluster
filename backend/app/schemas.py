@@ -10,6 +10,12 @@ class EventIn(BaseModel):
     severity: Optional[int] = None
     properties: dict[str, Any] = Field(default_factory=dict)
 
+class EventUpdate(BaseModel):
+    id: int
+    type: Optional[str] = None
+    severity: Optional[str] = None
+    occurred_at: Optional[datetime] = None
+    
 class EventOut(EventIn):
     id: int
     class Config:
