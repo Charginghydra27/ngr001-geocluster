@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NGR001 Geocluster - API Documentation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            color: #1a73e8;
+            border-bottom: 2px solid #1a73e8;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #444;
+            margin-top: 30px;
+        }
+        a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .module-list {
+            list-style: none;
+            padding: 0;
+        }
+        .module-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .module-list li:last-child {
+            border-bottom: none;
+        }
+        .description {
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <h1>NGR001 Geocluster - Module Documentation</h1>
+    
+    <p>
+        This documentation provides detailed information about the module interfaces
+        for the NGR001 Real-Time Geospatial Event Clustering System. The system
+        enables visualization and analysis of geospatial events through H3 hexagonal
+        binning and DBSCAN clustering algorithms.
+    </p>
+
+    <div class="section">
+        <h2>Backend API (Python/FastAPI)</h2>
+        <p>The backend provides REST API endpoints for event management and spatial clustering.</p>
+        <ul class="module-list">
+            <li>
+                <a href="backend/app/index.html">app</a>
+                <span class="description"> - Main application package</span>
+            </li>
+            <li>
+                <a href="backend/app/main.html">app.main</a>
+                <span class="description"> - FastAPI application and REST endpoints</span>
+            </li>
+            <li>
+                <a href="backend/app/models.html">app.models</a>
+                <span class="description"> - SQLAlchemy ORM models for events</span>
+            </li>
+            <li>
+                <a href="backend/app/schemas.html">app.schemas</a>
+                <span class="description"> - Pydantic schemas for request/response validation</span>
+            </li>
+            <li>
+                <a href="backend/app/crud.html">app.crud</a>
+                <span class="description"> - Database CRUD operations with PostGIS</span>
+            </li>
+            <li>
+                <a href="backend/app/clustering.html">app.clustering</a>
+                <span class="description"> - H3 binning and DBSCAN clustering algorithms</span>
+            </li>
+            <li>
+                <a href="backend/app/db.html">app.db</a>
+                <span class="description"> - Database connection and session management</span>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Frontend (TypeScript/React)</h2>
+        <p>The frontend provides an interactive map visualization using MapLibre GL and deck.gl.</p>
+        <ul class="module-list">
+            <li>
+                <a href="frontend/index.html">Frontend Modules</a>
+                <span class="description"> - TypeDoc generated documentation</span>
+            </li>
+            <li>
+                <a href="frontend/functions/fetchH3.html">api.fetchH3</a>
+                <span class="description"> - Fetch H3 hexagonal aggregations</span>
+            </li>
+            <li>
+                <a href="frontend/functions/fetchEventsInHex.html">api.fetchEventsInHex</a>
+                <span class="description"> - Fetch events within a hexagon</span>
+            </li>
+            <li>
+                <a href="frontend/functions/updateEventsBulk.html">api.updateEventsBulk</a>
+                <span class="description"> - Bulk update events</span>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>API Endpoints</h2>
+        <p>The backend exposes the following REST API endpoints:</p>
+        <ul class="module-list">
+            <li><code>GET /health</code> <span class="description"> - Health check</span></li>
+            <li><code>POST /events/bulk</code> <span class="description"> - Bulk insert events</span></li>
+            <li><code>PATCH /events/bulk_update</code> <span class="description"> - Bulk update events</span></li>
+            <li><code>GET /events</code> <span class="description"> - Query events with spatial/temporal filters</span></li>
+            <li><code>GET /aggregations/h3</code> <span class="description"> - H3 hexagonal aggregation</span></li>
+            <li><code>GET /clusters/dbscan</code> <span class="description"> - DBSCAN clustering</span></li>
+        </ul>
+    </div>
+
+    <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #666; font-size: 0.9em;">
+        <p>NGR001 Geocluster - University of Nebraska at Omaha Capstone Project</p>
+    </footer>
+</body>
+</html>
